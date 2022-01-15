@@ -12,6 +12,8 @@ from sklearn.model_selection import cross_val_score
 import math
 import pickle
 
+pd.set_option('display.max_rows', 500)
+
 if not mt5.initialize():
     print("initialize() failed")
     mt5.shutdown()
@@ -49,9 +51,9 @@ clf = auxs.sgd_model(train)
 
 clf.fit(train[cols], train.target)
 
-# pickle.dump(clf, open('./models/' + ativo + '.sav', 'wb'))
+pickle.dump(clf, open('./models/' + ativo + '.sav', 'wb'))
 
-# clf = pickle.load(open('./models/' + ativo + '.sav', 'rb'))
+clf = pickle.load(open('./models/' + ativo + '.sav', 'rb'))
 
 train['pred'] = clf.predict(train[cols])
 test['pred'] = clf.predict(test[cols])
@@ -73,7 +75,22 @@ compra = test.retorno
 # test['lag_5'] = test.close.shift(5)
 # test.dropna(inplace=True)
 
-test['pode_operar'] = test.apply(lambda row: row['Data'].hour < 17, axis=1)
+test['pode_operar'] = test.apply(lambda row: 
+    row['Data'] > pd.Timestamp(
+        year= row.Data.year, 
+        month=row.Data.month,
+        day=row.Data.day,
+        hour=9,
+        minute=5
+    ) and
+    row['Data'] < pd.Timestamp(
+        year= row.Data.year, 
+        month=row.Data.month,
+        day=row.Data.day,
+        hour=17,
+        minute=0
+    ), axis=1
+)
 
 regra_inclinacao = 'inclinacao_close'
 inclinacao = 40
