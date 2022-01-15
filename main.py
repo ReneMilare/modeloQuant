@@ -9,6 +9,7 @@ from sklearn.metrics import plot_confusion_matrix
 from sklearn.metrics import plot_roc_curve
 from sklearn.metrics import classification_report
 from sklearn.model_selection import cross_val_score
+import statsmodels.api as sm
 import math
 import pickle
 
@@ -24,11 +25,11 @@ utc_to = dt.datetime.now()
 ativo = 'WIN@'
 
 rates = mt5.copy_rates_range(ativo, mt5.TIMEFRAME_M5, utc_from, utc_to)
-print(rates)
+# print(rates)
 mt5.shutdown()
 
 df = pd.DataFrame(rates)
-print(df)
+# print(df)
 df['time']=pd.to_datetime(df['time'], unit='s')
 
 df, cols = auxs.add_lags(df, 5)
@@ -47,17 +48,25 @@ test["Data"] = pd.to_datetime(test["time"])
 
 # clf = auxs.create_ensemble_model(train)
 
-clf = auxs.sgd_model(train)
+feature_selection = sm.GLM(endog=train.target, exog=sm.add_constant(train[cols]), family=sm.families.Binomial()).fit()
+
+df_fs = pd.DataFrame(feature_selection.pvalues, columns=['pvalue'])
+df_fs.drop('const', axis=0, inplace=True)
+
+# clf = auxs.logistic_regression_model(train)
 # clf = auxs.ensemble_sgd_model(train)
+clf = auxs.sgd_model(train)
+
+cols = df_fs[df_fs.pvalue < 0.05].index
 
 clf.fit(train[cols], train.target)
 
-pickle.dump(clf, open('./models/' + ativo + '.sav', 'wb'))
+# pickle.dump(clf, open('./models/' + ativo + '.sav', 'wb'))
 
-clf = pickle.load(open('./models/' + ativo + '.sav', 'rb'))
+# clf = pickle.load(open('./models/' + ativo + '.sav', 'rb'))
 
-train['pred'] = clf.predict(train[cols])
-test['pred'] = clf.predict(test[cols])
+train['pred'] = clf.predict(sm.add_constant(train[cols]))
+test['pred'] = clf.predict(sm.add_constant(test[cols]))
 
 plt.figure()
 print('Matrix do teste')
