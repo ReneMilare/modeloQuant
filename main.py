@@ -65,8 +65,8 @@ clf.fit(train[cols], train.target)
 
 # clf = pickle.load(open('./models/' + ativo + '.sav', 'rb'))
 
-train['pred'] = clf.predict(sm.add_constant(train[cols]))
-test['pred'] = clf.predict(sm.add_constant(test[cols]))
+train['pred'] = clf.predict(train[cols])
+test['pred'] = clf.predict(test[cols])
 
 plt.figure()
 print('Matrix do teste')
@@ -254,7 +254,7 @@ plt.show()
 
 # daqui para baixo é do Leandro
 
-trade = 'trade2'
+trade = 'trade2_'
 
 test["train_test"] = np.where(test["Data"] > train.time[len(train)-1], 1, -1)
 
