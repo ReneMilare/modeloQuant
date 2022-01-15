@@ -40,7 +40,7 @@ def add_lags(data, lags, window=20, fit_model = True):
     'I',
   ]
 
-  beta_periods = [100, 150, 200]
+  beta_periods = [50 ,100, 150, 200, 250, 300, 350]
 
   for beta in beta_periods:
     combinations = list(itertools.permutations(['open', 'high', 'low', 'close'],2))

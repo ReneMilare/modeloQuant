@@ -28,11 +28,11 @@ rates = mt5.copy_rates_range(ativo, mt5.TIMEFRAME_M5, utc_from, utc_to)
 # print(rates)
 mt5.shutdown()
 
-df = pd.DataFrame(rates)
+df_raw = pd.DataFrame(rates)
 # print(df)
-df['time']=pd.to_datetime(df['time'], unit='s')
+df_raw['time']=pd.to_datetime(df_raw['time'], unit='s')
 
-df, cols = auxs.add_lags(df, 5)
+df, cols = auxs.add_lags(df_raw, 5)
 
 auxs.set_seeds()
 
