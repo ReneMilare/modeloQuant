@@ -9,6 +9,7 @@ from sklearn.metrics import plot_confusion_matrix
 from sklearn.metrics import plot_roc_curve
 from sklearn.metrics import classification_report
 from sklearn.model_selection import cross_val_score
+from sklearn.feature_selection import SelectKBest, chi2
 import statsmodels.api as sm
 import math
 import pickle
@@ -22,7 +23,7 @@ if not mt5.initialize():
 utc_from = dt.datetime.now() - dt.timedelta(9999)
 utc_to = dt.datetime.now()
 
-ativo = 'WIN@'
+ativo = 'WDO@'
 
 rates = mt5.copy_rates_range(ativo, mt5.TIMEFRAME_M5, utc_from, utc_to)
 # print(rates)
@@ -36,7 +37,7 @@ df, cols = auxs.add_lags(df_raw, 5)
 
 auxs.set_seeds()
 
-split = int(df.shape[0] * 0.8)
+split = int(df.shape[0] * 0.9999)
 
 train = df.iloc[:split].copy()
 test = df.iloc[split:].copy()
@@ -48,22 +49,25 @@ test["Data"] = pd.to_datetime(test["time"])
 
 # clf = auxs.create_ensemble_model(train)
 
-feature_selection = sm.GLM(endog=train.target, exog=sm.add_constant(train[cols]), family=sm.families.Binomial()).fit()
+# feature_selection = sm.GLM(endog=train.target, exog=sm.add_constant(train[cols]), family=sm.families.Binomial()).fit()
 
-df_fs = pd.DataFrame(feature_selection.pvalues, columns=['pvalue'])
-df_fs.drop('const', axis=0, inplace=True)
+# df_fs = pd.DataFrame(feature_selection.pvalues, columns=['pvalue'])
+# df_fs.drop('const', axis=0, inplace=True)
 
 # clf = auxs.logistic_regression_model(train)
 # clf = auxs.ensemble_sgd_model(train)
+
+X_new = SelectKBest(chi2, k='all').fit_transform(train[cols], train.target)
+
 clf = auxs.sgd_model(train)
 
-cols = df_fs[df_fs.pvalue < 0.05].index
+# cols = df_fs[df_fs.pvalue < 0.05].index
 
 clf.fit(train[cols], train.target)
 
-# pickle.dump(clf, open('./models/' + ativo + '.sav', 'wb'))
+pickle.dump(clf, open('./models/' + ativo + '.sav', 'wb'))
 
-# clf = pickle.load(open('./models/' + ativo + '.sav', 'rb'))
+clf = pickle.load(open('./models/' + ativo + '.sav', 'rb'))
 
 train['pred'] = clf.predict(train[cols])
 test['pred'] = clf.predict(test[cols])
@@ -107,16 +111,16 @@ inclinacao = 40
 
 test['trade'] = np.where(
     (test.pred == 0) & 
-    (test.mean_9 < test.mean_20) &
-    (test.close < test.mean_9) &
-    (test.close < test.mean_20) &
+    (test.mme_9 < test.mma_20) &
+    (test.close < test.mme_9) &
+    (test.close < test.mma_20) &
     (test.pode_operar) &
     (test[regra_inclinacao] < -inclinacao), venda,
     np.where(
         (test.pred == 1) &
-        (test.mean_9 > test.mean_20) &
-        (test.close > test.mean_9) &
-        (test.close > test.mean_20) &
+        (test.mme_9 > test.mma_20) &
+        (test.close > test.mme_9) &
+        (test.close > test.mma_20) &
         (test.pode_operar) &
         (test[regra_inclinacao] > inclinacao), compra, 0)
 )
@@ -142,72 +146,72 @@ test['trade2_'] = np.where(
 
 test['trade3'] = np.where(
     (test.pred == 0) & 
-    (test.mean_9 < test.mean_20) &
+    (test.mme_9 < test.mma_20) &
     (test.pode_operar)&
     (test[regra_inclinacao] < -inclinacao), venda,
     np.where(
         (test.pred == 1) &
-        (test.mean_9 > test.mean_20) &
+        (test.mme_9 > test.mma_20) &
         (test.pode_operar)&
         (test[regra_inclinacao] > inclinacao), compra, 0)
 )
 
 test['trade4'] = np.where(
     (test.pred == 0) & 
-    (test.mean_9 < test.mean_20) &
-    (test.mean_20 < test.mean_20.shift()) &
+    (test.mme_9 < test.mma_20) &
+    (test.mma_20 < test.mma_20.shift()) &
     (test.pode_operar)&
     (test[regra_inclinacao] < -inclinacao), venda,
     np.where(
         (test.pred == 1) &
-        (test.mean_9 > test.mean_20) &
-        (test.mean_20 > test.mean_20.shift()) &
+        (test.mme_9 > test.mma_20) &
+        (test.mma_20 > test.mma_20.shift()) &
         (test.pode_operar)&
         (test[regra_inclinacao] > inclinacao), compra, 0)
 )
 
 test['trade5'] = np.where(
     (test.pred == 0) & 
-    (test.mean_9 < test.mean_20) &
-    (test.close < test.mean_9) &
-    (test.close < test.mean_20) &
-    (test.mean_20 < test.mean_20.shift()) &
+    (test.mme_9 < test.mma_20) &
+    (test.close < test.mme_9) &
+    (test.close < test.mma_20) &
+    (test.mma_20 < test.mma_20.shift()) &
     (test.pode_operar)&
     (test[regra_inclinacao] < -inclinacao), venda,
     np.where(
         (test.pred == 1) &
-        (test.mean_9 > test.mean_20) &
-        (test.close > test.mean_9) &
-        (test.close > test.mean_20) &
-        (test.mean_20 > test.mean_20.shift()) &
+        (test.mme_9 > test.mma_20) &
+        (test.close > test.mme_9) &
+        (test.close > test.mma_20) &
+        (test.mma_20 > test.mma_20.shift()) &
         (test.pode_operar)&
         (test[regra_inclinacao] > inclinacao), compra, 0)
 )
 
 test['trade6'] = np.where(
     (test.pred == 0) & 
-    (test.mean_9 < test.mean_20) &
-    (test.close < test.mean_9) &
-    (test.close < test.mean_20) &
-    (test.mean_20 < test.mean_20.shift()) &
+    (test.mme_9 < test.mma_20) &
+    (test.close < test.mme_9) &
+    (test.close < test.mma_20) &
+    (test.mma_20 < test.mma_20.shift()) &
     (test.pode_operar)&
     (test[regra_inclinacao] < -inclinacao), venda,
     np.where(
         (test.pred == 1) &
-        (test.mean_9 > test.mean_20) &
-        (test.close > test.mean_9) &
-        (test.close > test.mean_20) &
-        (test.mean_20 > test.mean_20.shift()) &
+        (test.mme_9 > test.mma_20) &
+        (test.close > test.mme_9) &
+        (test.close > test.mma_20) &
+        (test.mma_20 > test.mma_20.shift()) &
         (test.pode_operar)&
         (test[regra_inclinacao] > inclinacao), compra, 0)
 )
 
 # test['coloracao'] = np.where(
 #     (test.pred == 0) & 
-#     (test.mean_9 < test.mean_20), 'VENDE',
+#     (test.mme_9 < test.mma_20), 'VENDE',
 #     np.where(
 #         (test.pred == 1) &
-#         (test.mean_9 > test.mean_20), 'COMPRA', '--'
+#         (test.mme_9 > test.mma_20), 'COMPRA', '--'
 #     )
 # )
 
@@ -254,9 +258,9 @@ plt.show()
 
 # daqui para baixo é do Leandro
 
-trade = 'trade2_'
+trade = 'trade2'
 
-test["train_test"] = np.where(test["Data"] > train.time[len(train)-1], 1, -1)
+# test["train_test"] = np.where(test["Data"] > train.time[len(train)-1], 1, -1)
 
 base_agregada = test.resample("M", on = "Data").sum()
 
@@ -267,21 +271,20 @@ summary["Data"] = pd.to_datetime(summary["time"], format = "%Y-%m")
 summary = summary.groupby([summary["Data"].dt.year]).agg({trade: sum})
 summary.index = summary.index.set_names(["Ano"])
 
-summary_days = test.copy()
-summary_days["Data"] = pd.to_datetime(summary_days["time"], format = "%Y-%m")
-summary_days = summary_days.groupby([summary_days["Data"].dt.year, summary_days["Data"].dt.month, summary_days["Data"].dt.day]).agg({trade: sum})
-summary_days.index = summary_days.index.set_names(['Ano','Mes',"Dias"])
-
 summary_mes = test.copy()
 summary_mes["Data"] = pd.to_datetime(summary_mes["time"], format = "%Y-%m")
 summary_mes = summary_mes.groupby([summary_mes["Data"].dt.year, summary_mes["Data"].dt.month]).agg({trade: sum})
 summary_mes.index = summary_mes.index.set_names(["Ano", "Mes"])
 
-# print("--- OMNP: Resultado Ensemble IND FUT de 2003 à 2021 ---")
-# print("")
-# print("Treinamento: 2003-2009")
-# print("Teste      : 2010-2021")
-# print("Sem uso de stop - custos operacionais não incluídos")
+summary_days = test.copy()
+summary_days["Data"] = pd.to_datetime(summary_days["time"], format = "%Y-%m")
+summary_days = summary_days.groupby([summary_days["Data"].dt.year, summary_days["Data"].dt.month, summary_days["Data"].dt.day]).agg({trade: sum})
+summary_days.index = summary_days.index.set_names(['Ano','Mes',"Dias"])
+
+summary_hour = test.copy()
+summary_hour["Data"] = pd.to_datetime(summary_hour["time"], format = "%Y-%m")
+summary_hour = summary_hour.groupby([summary_hour["Data"].dt.year, summary_hour["Data"].dt.month, summary_hour["Data"].dt.day, summary_hour['Data'].dt.hour]).agg({trade: sum})
+summary_hour.index = summary_hour.index.set_names(['Ano','Mes',"Dias", 'Horas'])
 
 print()
 print('Acc - treino')
@@ -296,17 +299,25 @@ print('Report')
 print(classification_report(test.target, test.pred))
 
 print("---------------------------------------------------")
-print("Pior retorno diário:     {} %".format(round(summary_days[trade].min(), 3)*100))
-print("Melhor retorno diário:   {} %".format(round(summary_days[trade].max(), 3)*100))
-print("Média ganho diário:      {} %".format(round(summary_days[trade].mean(), 2)*100))
+print("Pior trade:              {} %".format(round(test[trade].min(), 5)*100))
+print("Melhor trade:            {} %".format(round(test[trade].max(), 5)*100))
+print("Média trade:             {} %".format(round(test[trade].mean(), 5)*100))
 print("---------------------------------------------------")
-print("Pior retorno mensal:     {} %".format(round(summary_mes[trade].min(), 3)*100))
-print("Melhor retorno mensal:   {} %".format(round(summary_mes[trade].max(), 3)*100))
-print("Média ganho mensal:      {} %".format(round(summary_mes[trade].mean(), 2)*100))
+print("Pior retorno horário:    {} %".format(round(summary_hour[trade].min(), 5)*100))
+print("Melhor retorno horário:  {} %".format(round(summary_hour[trade].max(), 5)*100))
+print("Média ganho horário:     {} %".format(round(summary_hour[trade].mean(), 5)*100))
+print("---------------------------------------------------")
+print("Pior retorno diário:     {} %".format(round(summary_days[trade].min(), 5)*100))
+print("Melhor retorno diário:   {} %".format(round(summary_days[trade].max(), 5)*100))
+print("Média ganho diário:      {} %".format(round(summary_days[trade].mean(), 5)*100))
+print("---------------------------------------------------")
+print("Pior retorno mensal:     {} %".format(round(summary_mes[trade].min(), 5)*100))
+print("Melhor retorno mensal:   {} %".format(round(summary_mes[trade].max(), 5)*100))
+print("Média ganho mensal:      {} %".format(round(summary_mes[trade].mean(), 5)*100))
 print("---------------------------------")
-print("Pior retorno anual:      {} %".format(round(summary[trade].min(), 3)*100))
-print("Melhor retorno anual:    {} %".format(round(summary[trade].max(), 3)*100))
-print("Média ganho anual:       {} %".format(round(summary[trade].mean(), 2)*100))
+print("Pior retorno anual:      {} %".format(round(summary[trade].min(), 5)*100))
+print("Melhor retorno anual:    {} %".format(round(summary[trade].max(), 5)*100))
+print("Média ganho anual:       {} %".format(round(summary[trade].mean(), 5)*100))
 print("---------------------------------")
 print("# Anos negativos:        {}".format((summary[trade] < 0).sum()))
 print("# Anos positivos:        {}".format((summary[trade] > 0).sum()))
@@ -314,7 +325,15 @@ print("---------------------------------")
 print("# Meses negativos:       {}".format((summary_mes[trade] < 0).sum()))
 print("# Meses positivos:       {}".format((summary_mes[trade] > 0).sum()))
 print("---------------------------------")
-print("# Dias negativos:       {}".format((summary_days[trade] < 0).sum()))
-print("# Dias positivos:       {}".format((summary_days[trade] > 0).sum()))
+print("# Dias negativos:        {}".format((summary_days[trade] < 0).sum()))
+print("# Dias positivos:        {}".format((summary_days[trade] > 0).sum()))
 print("---------------------------------")
-print("# Total(simples):        {} %".format(round(summary_mes[trade].sum(), 3)*100))
+print("# Horas negativos:       {}".format((summary_hour[trade] < 0).sum()))
+print("# Horas positivos:       {}".format((summary_hour[trade] > 0).sum()))
+print("---------------------------------")
+print("# Trades negativos:      {}".format((test[trade] < 0).sum()))
+print("# Trades positivos:      {}".format((test[trade] > 0).sum()))
+print("# Total de trades:       {}".format((test[trade] > 0).sum() + (test[trade] < 0).sum()))
+print("# Taxa de acertos:       {} %".format(((test[trade] > 0).sum()/((test[trade] > 0).sum() + (test[trade] < 0).sum()))*100))
+print("---------------------------------")
+print("# Total(simples):        {} %".format(round(summary_mes[trade].sum(), 5)*100))

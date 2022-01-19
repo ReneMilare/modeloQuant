@@ -20,25 +20,16 @@ import math
 
 def add_lags(data, lags, window=20, fit_model = True):
   cols = []
+  features = []
+  to_pdcut = []
+
   df = data.copy()
-  df['retorno'] = np.log(df.close / df.close.shift())
+  # df['retorno'] = np.log(df.close / df.close.shift())
+  df['retorno'] = df.close.pct_change()
   df['min'] = df.close.rolling(window).min()
   df['max'] = df.close.rolling(window).max()
   df['mom'] = df.retorno.rolling(window).mean()
   df['vol'] = df.retorno.rolling(window).std()
-
-  features = [
-    'volatilidade',
-    'std_9',
-    'std_20',
-    'distancia_mean_9',
-    'distancia_mean_20',
-    'corpo_candle',
-    'distancia_medias',
-    'V_Max',
-    'V_Min',
-    'I',
-  ]
 
   beta_periods = [100, 150, 200]
 
@@ -53,34 +44,92 @@ def add_lags(data, lags, window=20, fit_model = True):
 
   df['mma20'] = talib.MA(df.close, timeperiod=20)
   df['mme9'] = talib.EMA(df.close, timeperiod=9)
+  df['mma_20'] = talib.MA(df.close, timeperiod=20)
+  df['mme_9'] = talib.EMA(df.close, timeperiod=9)
 
   df['alta_ou_baixa'] = np.where(df.open <= df.close, 1, 0)
   if fit_model:
     df['alvo'] = df.alta_ou_baixa.shift(-1)
-  df['mean_9'] = df.close.rolling(9).mean()
-  df['mean_20'] = df.close.rolling(20).mean()
+  # df['mean_9'] = df.close.rolling(9).mean()
+  # df['mean_20'] = df.close.rolling(20).mean()
 
   df['volatilidade'] = ((df.high - df.low)/df.low) * 100
   df['std_9'] = df.close.rolling(9).std()*100
   df['std_20'] = df.close.rolling(20).std()*100
-  df['distancia_mean_9'] = ((df.close - df.mean_9)/df.mean_9) * 100
-  df['distancia_mean_20'] = ((df.close - df.mean_20)/df.mean_20) * 100
+  df['std_50'] = df.close.rolling(50).std()*100
+  df['distancia_mea9'] = ((df.close - df.mme9)/df.mme9) * 100
+  df['distancia_mma20'] = ((df.close - df.mma20)/df.mma20) * 100
   df['corpo_candle'] = ((df.close - df.open)/df.open) * 100
-  df['distancia_medias'] = ((df.mean_20 - df.mean_9)/df.mean_9) * 100
+  df['distancia_medias'] = ((df.mma20 - df.mme9)/df.mme9) * 100
 
   # teste de novas variáveis
   df["V_Max"] = df["retorno"].rolling(15).max()
   df["V_Min"] = df["retorno"].rolling(15).min()
   df["I"] = df["retorno"].rolling(15).sum()
 
+  # RSL std5
+  df["RSL_std9"] = (df["std_9"]/df["std_9"].rolling(15).mean())-1
+  # RSL std10
+  df["RSL_std20"] = (df["std_20"]/df["std_20"].rolling(15).mean())-1
+  # RSL std15
+  df["RSL_std15"] = (df["std_50"]/df["std_50"].rolling(15).mean())-1
+  # RSL5 do fechamento
+  df["RSL_5"] = (df["close"]/df["close"].rolling(5).mean())-1
+  # RSL10 do fechamento
+  df["RSL_10"] = (df["close"]/df["close"].rolling(10).mean())-1
+  # RSL15 do fechamento
+  df["RSL_15"] = (df["close"]/df["close"].rolling(15).mean())-1
 
-  df.volatilidade = pd.qcut(df.volatilidade, 5, labels=False)
-  df.std_9 = pd.qcut(df.std_9, 5, labels=False)
-  df.std_20 = pd.qcut(df.std_20, 5, labels=False)
-  df.distancia_mean_9 = pd.qcut(df.distancia_mean_9, 5, labels=False)
-  df.distancia_mean_20 = pd.qcut(df.distancia_mean_20, 5, labels=False)
-  df.corpo_candle = pd.qcut(df.corpo_candle, 5, labels=False)
-  df.distancia_medias = pd.qcut(df.distancia_medias, 5, labels=False)
+  features.append('min')
+  features.append('max')
+  features.append('mom')
+  features.append('vol')
+  features.append('mma20')
+  features.append('mme9')
+  features.append('volatilidade')
+  features.append('std_9')
+  features.append('std_20')
+  features.append('std_50')
+  features.append('distancia_mea9')
+  features.append('distancia_mma20')
+  features.append('corpo_candle')
+  features.append('distancia_medias')
+  features.append('V_Max')
+  features.append('V_Min')
+  features.append('I')
+  features.append('RSL_std9')
+  features.append('RSL_std20')
+  features.append('RSL_std15')
+  features.append('RSL_5')
+  features.append('RSL_10')
+  features.append('RSL_15')
+
+  to_pdcut.append('min')
+  to_pdcut.append('max')
+  to_pdcut.append('mom')
+  to_pdcut.append('vol')
+  to_pdcut.append('mma20')
+  to_pdcut.append('mme9')
+  to_pdcut.append('volatilidade')
+  to_pdcut.append('std_9')
+  to_pdcut.append('std_20')
+  to_pdcut.append('std_50')
+  to_pdcut.append('distancia_mea9')
+  to_pdcut.append('distancia_mma20')
+  to_pdcut.append('corpo_candle')
+  to_pdcut.append('distancia_medias')
+  to_pdcut.append('V_Max')
+  to_pdcut.append('V_Min')
+  to_pdcut.append('I')
+  to_pdcut.append('RSL_std9')
+  to_pdcut.append('RSL_std20')
+  to_pdcut.append('RSL_std15')
+  to_pdcut.append('RSL_5')
+  to_pdcut.append('RSL_10')
+  to_pdcut.append('RSL_15')
+
+  for p in to_pdcut:
+    df[p] = pd.cut(df[p], 5, labels=False)
 
   df['lag_5'] = df.close.shift(5)
   df.dropna(inplace=True)
@@ -236,8 +285,8 @@ def sgd_model(df):
   )
 
   clf = make_pipeline(
-    StandardScaler(),
-    PCA(n_components=0.99),
+    # StandardScaler(),
+    # PCA(n_components=0.99),
     sgd
   )
   return clf
@@ -404,3 +453,8 @@ def send_order(symbol = 'WING22', lot=1.0, deviation=10, order_type='buy'):
     result=mt5.order_send(request)
     result =''
     return result
+
+def read_data():
+  df = pd.read_csv('./data/WIN.csv', sep=';')
+
+  return df
