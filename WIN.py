@@ -35,7 +35,25 @@ while True:
 
     clf = pickle.load(open('./models/' + modelo + '.sav', 'rb'))
 
-    # cols = ''
+    cols = ['beta_open_low_100', 'beta_low_open_100', 'beta_close_high_100',
+       'beta_open_low_200', 'beta_close_high_200',
+       'beta_open_low_100_lag_1', 'beta_open_low_100_lag_2',
+       'beta_open_low_100_lag_3', 'beta_open_low_100_lag_4',
+       'beta_open_low_100_lag_5', 'beta_low_open_100_lag_1',
+       'beta_low_open_100_lag_2', 'beta_low_open_100_lag_3',
+       'beta_low_open_100_lag_4', 'beta_low_open_100_lag_5',
+       'beta_close_high_100_lag_1', 'beta_close_high_100_lag_2',
+       'beta_close_high_100_lag_3', 'beta_close_high_100_lag_4',
+       'beta_close_high_100_lag_5', 'beta_close_high_150_lag_2',
+       'beta_open_low_200_lag_2', 'beta_open_low_200_lag_3',
+       'beta_close_high_200_lag_2', 'beta_close_high_200_lag_3',
+       'beta_close_high_200_lag_4', 'vol_lag_1', 'vol_lag_2', 'vol_lag_3',
+       'vol_lag_4', 'vol_lag_5', 'volatilidade_lag_1',
+       'volatilidade_lag_2', 'volatilidade_lag_3', 'volatilidade_lag_4',
+       'std_9_lag_1', 'std_9_lag_2', 'std_9_lag_4', 'std_9_lag_5',
+       'std_20_lag_1', 'std_20_lag_2', 'std_20_lag_3', 'std_20_lag_4',
+       'std_20_lag_5', 'std_50_lag_1', 'std_50_lag_2', 'std_50_lag_3',
+       'std_50_lag_4', 'std_50_lag_5']
 
     df['pred'] = clf.predict(df[cols])
 

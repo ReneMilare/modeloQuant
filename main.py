@@ -23,7 +23,7 @@ if not mt5.initialize():
 utc_from = dt.datetime.now() - dt.timedelta(9999)
 utc_to = dt.datetime.now()
 
-ativo = 'WDO@'
+ativo = 'WIN@'
 
 rates = mt5.copy_rates_range(ativo, mt5.TIMEFRAME_M5, utc_from, utc_to)
 # print(rates)
@@ -37,7 +37,7 @@ df, cols = auxs.add_lags(df_raw, 5)
 
 auxs.set_seeds()
 
-split = int(df.shape[0] * 0.9999)
+split = int(df.shape[0] * 0.7)
 
 train = df.iloc[:split].copy()
 test = df.iloc[split:].copy()
@@ -47,27 +47,22 @@ test.reset_index(inplace = True)
 
 test["Data"] = pd.to_datetime(test["time"])
 
-# clf = auxs.create_ensemble_model(train)
+select_features = SelectKBest(chi2, k='all').fit(train[cols], train.target)
 
-# feature_selection = sm.GLM(endog=train.target, exog=sm.add_constant(train[cols]), family=sm.families.Binomial()).fit()
-
-# df_fs = pd.DataFrame(feature_selection.pvalues, columns=['pvalue'])
-# df_fs.drop('const', axis=0, inplace=True)
-
-# clf = auxs.logistic_regression_model(train)
-# clf = auxs.ensemble_sgd_model(train)
-
-X_new = SelectKBest(chi2, k='all').fit_transform(train[cols], train.target)
+df_features = pd.DataFrame(data={
+    'feature': select_features.feature_names_in_,
+    'pvalues': select_features.pvalues_
+})
 
 clf = auxs.sgd_model(train)
 
-# cols = df_fs[df_fs.pvalue < 0.05].index
+cols = df_features[df_features.pvalues < 0.05].feature.values
 
 clf.fit(train[cols], train.target)
 
-pickle.dump(clf, open('./models/' + ativo + '.sav', 'wb'))
+# pickle.dump(clf, open('./models/' + ativo + '.sav', 'wb'))
 
-clf = pickle.load(open('./models/' + ativo + '.sav', 'rb'))
+# clf = pickle.load(open('./models/' + ativo + '.sav', 'rb'))
 
 train['pred'] = clf.predict(train[cols])
 test['pred'] = clf.predict(test[cols])
@@ -82,9 +77,9 @@ plot_confusion_matrix(clf, test[cols], test.target)
 
 # test.pred = test.pred.shift()
 # test.dropna(inplace=True)
-
-venda = -test.retorno
-compra = test.retorno
+custo = 0.0001
+venda = -test.retorno - custo
+compra = test.retorno - custo
 
 # test['lag_5'] = test.close.shift(5)
 # test.dropna(inplace=True)

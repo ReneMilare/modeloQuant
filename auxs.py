@@ -285,8 +285,8 @@ def sgd_model(df):
   )
 
   clf = make_pipeline(
-    # StandardScaler(),
-    # PCA(n_components=0.99),
+    StandardScaler(),
+    PCA(n_components=0.99),
     sgd
   )
   return clf
