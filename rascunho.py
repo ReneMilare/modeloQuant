@@ -9,13 +9,14 @@ from sklearn.metrics import plot_confusion_matrix
 from sklearn.metrics import plot_roc_curve
 from sklearn.metrics import classification_report
 from sklearn.model_selection import cross_val_score
+from sklearn.feature_selection import SelectKBest, chi2
 import statsmodels.api as sm
 import math
 import pickle
 
 pd.set_option('display.max_rows', 500)
 
-ativo = 'WINFUT'
+ativo = 'WINFUT_F_0_5min'
 
 df = auxs.read_data()
 
@@ -26,6 +27,8 @@ df.time = df.Data + 'T' + df.time
 df.time = pd.to_datetime(df.time)
 
 df.drop('Data', inplace=True, axis=1)
+
+df = df.iloc[::-1]
 
 df, cols = auxs.add_lags(df, 5)
 
@@ -42,20 +45,37 @@ test.reset_index(inplace = True)
 test["Data"] = pd.to_datetime(test["time"])
 
 
-# clf = auxs.create_ensemble_model(train)
+df, cols = auxs.add_lags(df, 5)
 
-feature_selection = sm.GLM(endog=train.target, exog=sm.add_constant(train[cols]), family=sm.families.Binomial()).fit()
+auxs.set_seeds()
 
-df_fs = pd.DataFrame(feature_selection.pvalues, columns=['pvalue'])
-df_fs.drop('const', axis=0, inplace=True)
+split = int(df.shape[0] * 0.7)
 
-# clf = auxs.logistic_regression_model(train)
-# clf = auxs.ensemble_sgd_model(train)
+train = df.iloc[:split].copy()
+test = df.iloc[split:].copy()
+
+test.index.name = "Data"
+test.reset_index(inplace = True)
+
+test["Data"] = pd.to_datetime(test["time"])
+
+select_features = SelectKBest(chi2, k='all').fit(train[cols], train.target)
+
+df_features = pd.DataFrame(data={
+    'feature': select_features.feature_names_in_,
+    'pvalues': select_features.pvalues_
+})
+
+
 clf = auxs.sgd_model(train)
 
-cols = df_fs[df_fs.pvalue < 0.05].index
+cols = df_features[df_features.pvalues < 0.05].feature.values
 
 clf.fit(train[cols], train.target)
+
+ativo = 'WIN@'
+df_features.to_csv('./features/' + ativo)
+df_features = pd.read_csv('./features/' + ativo)
 
 pickle.dump(clf, open('./models/' + ativo + '.sav', 'wb'))
 
@@ -74,9 +94,9 @@ plot_confusion_matrix(clf, test[cols], test.target)
 
 # test.pred = test.pred.shift()
 # test.dropna(inplace=True)
-
-venda = -test.retorno
-compra = test.retorno
+custo = 0.000
+venda = -test.retorno - custo
+compra = test.retorno - custo
 
 # test['lag_5'] = test.close.shift(5)
 # test.dropna(inplace=True)
@@ -98,7 +118,7 @@ test['pode_operar'] = test.apply(lambda row:
     ), axis=1
 )
 
-regra_inclinacao = 'inclinacao_close'
+regra_inclinacao = 'inclinacao_mme9'
 inclinacao = 40
 
 test['trade'] = np.where(
@@ -183,7 +203,6 @@ test['trade5'] = np.where(
 test['trade6'] = np.where(
     (test.pred == 0) & 
     (test.mme_9 < test.mma_20) &
-    (test.close < test.mme_9) &
     (test.close < test.mma_20) &
     (test.mma_20 < test.mma_20.shift()) &
     (test.pode_operar)&
@@ -191,7 +210,6 @@ test['trade6'] = np.where(
     np.where(
         (test.pred == 1) &
         (test.mme_9 > test.mma_20) &
-        (test.close > test.mme_9) &
         (test.close > test.mma_20) &
         (test.mma_20 > test.mma_20.shift()) &
         (test.pode_operar)&
@@ -250,9 +268,9 @@ plt.show()
 
 # daqui para baixo é do Leandro
 
-trade = 'trade2'
+trade = 'trade'
 
-test["train_test"] = np.where(test["Data"] > train.time[len(train)-1], 1, -1)
+# test["train_test"] = np.where(test["Data"] > train.time[len(train)-1], 1, -1)
 
 base_agregada = test.resample("M", on = "Data").sum()
 
