@@ -106,9 +106,9 @@ def create_ensemble_model(df):
         ('Bagg SGD', bagg_sgd),
         ('Bagg Random Forest', bagg_random_forest),
         ('Bagg Logistic regression', bagg_logistic_regression),
-        # ('SGD', sgd),
-        # ('Random Forest', random_forest),
-        # ('Logistic regression', logistic_regression)
+        ('SGD', sgd),
+        ('Random Forest', random_forest),
+        ('Logistic regression', logistic_regression)
       ],
       n_jobs=-1,
       cv=3,

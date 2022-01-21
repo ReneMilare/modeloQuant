@@ -24,7 +24,7 @@ df_raw = auxs_mt5.get_data(
     utc_to    = utc_to,
     timeframe = mt5.TIMEFRAME_M5
 )
-
+mt5.shutdown()
 # df_raw = pre_processing.read_data(
 #     dataset = 'WDOFUT_F_0_5min'
 # )
@@ -53,6 +53,9 @@ cols = pre_processing.get_features(
 clf = auxs.sgd_model(
     df = train
 )
+# clf = auxs.logistic_regression_model(
+#     df = train
+# )
 
 clf.fit(train[cols], train.target)
 train['pred'] = clf.predict(train[cols])
@@ -64,8 +67,13 @@ clf = pickle.load(open('./models/' + ativo + '.sav', 'rb'))
 
 df_params = pd.read_csv('./features/params_'+ ativo)
 
+# angle melhro pro indice e pro dólar
+
 regra_inclinacao = 'linear_angle'
 inclinacao = df_params['mean_angle'].values[0] + df_params['std_angle'].values[0]
+
+# regra_inclinacao = 'linear_slope'
+# inclinacao = df_params['mean_slope'].values[0] + 1*df_params['std_slope'].values[0]
 
 df = relatorios.make_back_test(
     df               = test,
@@ -74,11 +82,11 @@ df = relatorios.make_back_test(
     inclinacao       = inclinacao
 )
 
-relatorios.get_plots(
-    df   = df,
-    clf  = clf,
-    cols = cols
-)
+# relatorios.get_plots(
+#     df   = df,
+#     clf  = clf,
+#     cols = cols
+# )
 
 relatorios.get_relatorio(
     df    = df,

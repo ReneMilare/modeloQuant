@@ -10,25 +10,26 @@ def init_mt5(ativo):
 
 def get_data(ativo, utc_from, utc_to, timeframe):
   rates = mt5.copy_rates_range(ativo, timeframe, utc_from, utc_to)
-  mt5.shutdown()
+  # mt5.shutdown()
   df_raw = pd.DataFrame(rates)
   df_raw['time']=pd.to_datetime(df_raw['time'], unit='s')
   return df_raw
 
 def send_order(symbol, lot=1.0, deviation=10, order_type='buy'):
+  # print('Esse é o ativo' + symbol)
   symbol_info = mt5.symbol_info(symbol)
   if symbol_info is None:
-      print(symbol, "not found, can not call order_check()")
-      mt5.shutdown()
-      quit()
+    print(symbol, "not found, can not call order_check()")
+    mt5.shutdown()
+    quit()
   
   # se o símbolo não estiver disponível no MarketWatch, adicionamo-lo
   if not symbol_info.visible:
-      print(symbol, "is not visible, trying to switch on")
-      if not mt5.symbol_select(symbol,True):
-          print("symbol_select({}}) failed, exit",symbol)
-          mt5.shutdown()
-          quit()
+    print(symbol, "is not visible, trying to switch on")
+    if not mt5.symbol_select(symbol,True):
+      print("symbol_select({}}) failed, exit",symbol)
+      mt5.shutdown()
+      quit()
   
   positions=mt5.positions_get(symbol=symbol)
   # point = mt5.symbol_info(symbol).point
